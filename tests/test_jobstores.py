@@ -36,7 +36,7 @@ def memjobstore():
 def sqlalchemyjobstore(tmpdir):
     db_path = tmpdir.join('apscheduler_unittest.sqlite')
     sqlalchemy = pytest.importorskip('apscheduler.jobstores.sqlalchemy')
-    store = sqlalchemy.SQLAlchemyJobStore(url='sqlite:///%s' % db_path)
+    store = sqlalchemy.SQLAlchemyJobStore(url=f'sqlite:///{db_path}')
     store.start(None, 'sqlalchemy')
     yield store
     store.shutdown()
@@ -231,13 +231,12 @@ def test_update_job_clear_next_runtime(jobstore, create_add_job, next_run_time, 
             assert due_job_ids == ['job1', 'job0', 'job2']
         else:
             assert due_job_ids == ['job2', 'job0', 'job1']
+    elif index == 0:
+        assert due_job_ids == ['job1', 'job2']
+    elif index == 1:
+        assert due_job_ids == ['job0', 'job2']
     else:
-        if index == 0:
-            assert due_job_ids == ['job1', 'job2']
-        elif index == 1:
-            assert due_job_ids == ['job0', 'job2']
-        else:
-            assert due_job_ids == ['job0', 'job1']
+        assert due_job_ids == ['job0', 'job1']
 
 
 def test_update_job_nonexistent_job(jobstore, create_add_job):
@@ -317,7 +316,7 @@ def test_sqlalchemy_engine_ref():
     sqlalchemy = pytest.importorskip('apscheduler.jobstores.sqlalchemy')
     sqla_engine = sqlalchemy.create_engine('sqlite:///')
     try:
-        sqlalchemy.SQLAlchemyJobStore(engine='%s:sqla_engine' % __name__)
+        sqlalchemy.SQLAlchemyJobStore(engine=f'{__name__}:sqla_engine')
     finally:
         sqla_engine.dispose()
         del sqla_engine
@@ -334,7 +333,7 @@ def test_mongodb_client_ref():
     mongodb = pytest.importorskip('apscheduler.jobstores.mongodb')
     mongodb_client = mongodb.MongoClient()
     try:
-        mongodb.MongoDBJobStore(client='%s:mongodb_client' % __name__)
+        mongodb.MongoDBJobStore(client=f'{__name__}:mongodb_client')
     finally:
         mongodb_client.close()
         del mongodb_client
@@ -345,7 +344,9 @@ def test_zookeeper_client_ref():
     zookeeper = pytest.importorskip('apscheduler.jobstores.zookeeper')
     zookeeper_client = zookeeper.KazooClient()
     try:
-        zookeeperjobstore = zookeeper.ZooKeeperJobStore(client='%s:zookeeper_client' % __name__)
+        zookeeperjobstore = zookeeper.ZooKeeperJobStore(
+            client=f'{__name__}:zookeeper_client'
+        )
         zookeeperjobstore.start(None, 'zookeeper')
         zookeeperjobstore.shutdown()
         assert zookeeper_client.connected is True
@@ -360,8 +361,10 @@ def test_zookeeper_client_keep_open():
     zookeeper = pytest.importorskip('apscheduler.jobstores.zookeeper')
     zookeeper_client = zookeeper.KazooClient()
     try:
-        zookeeperjobstore = zookeeper.ZooKeeperJobStore(client='%s:zookeeper_client' % __name__,
-                                                        close_connection_on_exit=True)
+        zookeeperjobstore = zookeeper.ZooKeeperJobStore(
+            client=f'{__name__}:zookeeper_client',
+            close_connection_on_exit=True,
+        )
         zookeeperjobstore.start(None, 'zookeeper')
         zookeeperjobstore.shutdown()
         assert zookeeper_client.connected is False

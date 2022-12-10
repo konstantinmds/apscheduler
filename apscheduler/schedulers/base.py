@@ -99,8 +99,11 @@ class BaseScheduler(metaclass=ABCMeta):
         # global configuration dict
         if prefix:
             prefixlen = len(prefix)
-            gconfig = dict((key[prefixlen:], value) for key, value in gconfig.items()
-                           if key.startswith(prefix))
+            gconfig = {
+                key[prefixlen:]: value
+                for key, value in gconfig.items()
+                if key.startswith(prefix)
+            }
 
         # Create a structure from the dotted options
         # (e.g. "a.b.c = d" -> {'a': {'b': {'c': 'd'}}})
@@ -115,7 +118,7 @@ class BaseScheduler(metaclass=ABCMeta):
             parent[key] = value
 
         # Override any options with explicit keyword arguments
-        config.update(options)
+        config |= options
         self._configure(config)
 
     def start(self, paused=False):
@@ -241,8 +244,9 @@ class BaseScheduler(metaclass=ABCMeta):
         """
         with self._executors_lock:
             if alias in self._executors:
-                raise ValueError('This scheduler already has an executor by the alias of "%s"' %
-                                 alias)
+                raise ValueError(
+                    f'This scheduler already has an executor by the alias of "{alias}"'
+                )
 
             if isinstance(executor, BaseExecutor):
                 self._executors[alias] = executor
@@ -250,8 +254,9 @@ class BaseScheduler(metaclass=ABCMeta):
                 self._executors[alias] = executor = self._create_plugin_instance(
                     'executor', executor, executor_opts)
             else:
-                raise TypeError('Expected an executor instance or a string, got %s instead' %
-                                executor.__class__.__name__)
+                raise TypeError(
+                    f'Expected an executor instance or a string, got {executor.__class__.__name__} instead'
+                )
 
             # Start the executor right away if the scheduler is running
             if self.state != STATE_STOPPED:
@@ -291,8 +296,9 @@ class BaseScheduler(metaclass=ABCMeta):
         """
         with self._jobstores_lock:
             if alias in self._jobstores:
-                raise ValueError('This scheduler already has a job store by the alias of "%s"' %
-                                 alias)
+                raise ValueError(
+                    f'This scheduler already has a job store by the alias of "{alias}"'
+                )
 
             if isinstance(jobstore, BaseJobStore):
                 self._jobstores[alias] = jobstore
@@ -300,8 +306,9 @@ class BaseScheduler(metaclass=ABCMeta):
                 self._jobstores[alias] = jobstore = self._create_plugin_instance(
                     'jobstore', jobstore, jobstore_opts)
             else:
-                raise TypeError('Expected a job store instance or a string, got %s instead' %
-                                jobstore.__class__.__name__)
+                raise TypeError(
+                    f'Expected a job store instance or a string, got {jobstore.__class__.__name__} instead'
+                )
 
             # Start the job store right away if the scheduler isn't stopped
             if self.state != STATE_STOPPED:
@@ -422,8 +429,11 @@ class BaseScheduler(metaclass=ABCMeta):
             'max_instances': max_instances,
             'next_run_time': next_run_time
         }
-        job_kwargs = dict((key, value) for key, value in job_kwargs.items() if
-                          value is not undefined)
+        job_kwargs = {
+            key: value
+            for key, value in job_kwargs.items()
+            if value is not undefined
+        }
         job = Job(self, **job_kwargs)
 
         # Don't really add jobs to job stores before the scheduler is up and running
@@ -527,8 +537,7 @@ class BaseScheduler(metaclass=ABCMeta):
         with self._jobstores_lock:
             job, jobstore = self._lookup_job(job_id, jobstore)
             now = datetime.now(self.timezone)
-            next_run_time = job.trigger.get_next_fire_time(None, now)
-            if next_run_time:
+            if next_run_time := job.trigger.get_next_fire_time(None, now):
                 return self.modify_job(job_id, jobstore, next_run_time=next_run_time)
             else:
                 self.remove_job(job.id, jobstore)
@@ -554,9 +563,11 @@ class BaseScheduler(metaclass=ABCMeta):
         with self._jobstores_lock:
             jobs = []
             if self.state == STATE_STOPPED:
-                for job, alias, replace_existing in self._pending_jobs:
-                    if jobstore is None or alias == jobstore:
-                        jobs.append(job)
+                jobs.extend(
+                    job
+                    for job, alias, replace_existing in self._pending_jobs
+                    if jobstore is None or alias == jobstore
+                )
             else:
                 for alias, store in self._jobstores.items():
                     if jobstore is None or alias == jobstore:
@@ -659,17 +670,16 @@ class BaseScheduler(metaclass=ABCMeta):
                 if self._pending_jobs:
                     for job, jobstore_alias, replace_existing in self._pending_jobs:
                         if jobstore in (None, jobstore_alias):
-                            print(u'    %s' % job, file=out)
+                            print(f'    {job}', file=out)
                 else:
                     print(u'    No pending jobs', file=out)
             else:
                 for alias, store in sorted(self._jobstores.items()):
                     if jobstore in (None, alias):
-                        print(u'Jobstore %s:' % alias, file=out)
-                        jobs = store.get_all_jobs()
-                        if jobs:
+                        print(f'Jobstore {alias}:', file=out)
+                        if jobs := store.get_all_jobs():
                             for job in jobs:
-                                print(u'    %s' % job, file=out)
+                                print(f'    {job}', file=out)
                         else:
                             print(u'    No scheduled jobs', file=out)
 
@@ -705,22 +715,21 @@ class BaseScheduler(metaclass=ABCMeta):
                 self.add_executor(value, alias)
             elif isinstance(value, MutableMapping):
                 executor_class = value.pop('class', None)
-                plugin = value.pop('type', None)
-                if plugin:
+                if plugin := value.pop('type', None):
                     executor = self._create_plugin_instance('executor', plugin, value)
                 elif executor_class:
                     cls = maybe_ref(executor_class)
                     executor = cls(**value)
                 else:
                     raise ValueError(
-                        'Cannot create executor "%s" -- either "type" or "class" must be defined' %
-                        alias)
+                        f'Cannot create executor "{alias}" -- either "type" or "class" must be defined'
+                    )
 
                 self.add_executor(executor, alias)
             else:
                 raise TypeError(
-                    "Expected executor instance or dict for executors['%s'], got %s instead" %
-                    (alias, value.__class__.__name__))
+                    f"Expected executor instance or dict for executors['{alias}'], got {value.__class__.__name__} instead"
+                )
 
         # Configure job stores
         self._jobstores.clear()
@@ -729,22 +738,21 @@ class BaseScheduler(metaclass=ABCMeta):
                 self.add_jobstore(value, alias)
             elif isinstance(value, MutableMapping):
                 jobstore_class = value.pop('class', None)
-                plugin = value.pop('type', None)
-                if plugin:
+                if plugin := value.pop('type', None):
                     jobstore = self._create_plugin_instance('jobstore', plugin, value)
                 elif jobstore_class:
                     cls = maybe_ref(jobstore_class)
                     jobstore = cls(**value)
                 else:
                     raise ValueError(
-                        'Cannot create job store "%s" -- either "type" or "class" must be '
-                        'defined' % alias)
+                        f'Cannot create job store "{alias}" -- either "type" or "class" must be defined'
+                    )
 
                 self.add_jobstore(jobstore, alias)
             else:
                 raise TypeError(
-                    "Expected job store instance or dict for jobstores['%s'], got %s instead" %
-                    (alias, value.__class__.__name__))
+                    f"Expected job store instance or dict for jobstores['{alias}'], got {value.__class__.__name__} instead"
+                )
 
     def _create_default_executor(self):
         """Creates a default executor store, specific to the particular scheduler type."""
@@ -766,7 +774,7 @@ class BaseScheduler(metaclass=ABCMeta):
         try:
             return self._executors[alias]
         except KeyError:
-            raise KeyError('No such executor: %s' % alias)
+            raise KeyError(f'No such executor: {alias}')
 
     def _lookup_jobstore(self, alias):
         """
@@ -780,7 +788,7 @@ class BaseScheduler(metaclass=ABCMeta):
         try:
             return self._jobstores[alias]
         except KeyError:
-            raise KeyError('No such job store: %s' % alias)
+            raise KeyError(f'No such job store: {alias}')
 
     def _lookup_job(self, job_id, jobstore_alias):
         """
@@ -841,11 +849,11 @@ class BaseScheduler(metaclass=ABCMeta):
 
         """
         # Fill in undefined values with defaults
-        replacements = {}
-        for key, value in self._job_defaults.items():
-            if not hasattr(job, key):
-                replacements[key] = value
-
+        replacements = {
+            key: value
+            for key, value in self._job_defaults.items()
+            if not hasattr(job, key)
+        }
         # Calculate the next run time if there is none defined
         if not hasattr(job, 'next_run_time'):
             now = datetime.now(self.timezone)
@@ -888,14 +896,13 @@ class BaseScheduler(metaclass=ABCMeta):
         try:
             plugin_cls = class_container[alias]
         except KeyError:
-            if alias in plugin_container:
-                plugin_cls = class_container[alias] = plugin_container[alias].load()
-                if not issubclass(plugin_cls, base_class):
-                    raise TypeError('The {0} entry point does not point to a {0} class'.
-                                    format(type_))
-            else:
+            if alias not in plugin_container:
                 raise LookupError('No {0} by the name "{1}" was found'.format(type_, alias))
 
+            plugin_cls = class_container[alias] = plugin_container[alias].load()
+            if not issubclass(plugin_cls, base_class):
+                raise TypeError('The {0} entry point does not point to a {0} class'.
+                                format(type_))
         return plugin_cls(**constructor_kwargs)
 
     def _create_trigger(self, trigger, trigger_args):
@@ -904,8 +911,9 @@ class BaseScheduler(metaclass=ABCMeta):
         elif trigger is None:
             trigger = 'date'
         elif not isinstance(trigger, str):
-            raise TypeError('Expected a trigger instance or string, got %s instead' %
-                            trigger.__class__.__name__)
+            raise TypeError(
+                f'Expected a trigger instance or string, got {trigger.__class__.__name__} instead'
+            )
 
         # Use the scheduler's time zone if nothing else is specified
         trigger_args.setdefault('timezone', self.timezone)
@@ -980,10 +988,9 @@ class BaseScheduler(metaclass=ABCMeta):
                                                        run_times)
                             events.append(event)
 
-                        # Update the job if it has a next execution time.
-                        # Otherwise remove it from the job store.
-                        job_next_run = job.trigger.get_next_fire_time(run_times[-1], now)
-                        if job_next_run:
+                        if job_next_run := job.trigger.get_next_fire_time(
+                            run_times[-1], now
+                        ):
                             job._modify(next_run_time=job_next_run)
                             jobstore.update_job(job)
                         else:

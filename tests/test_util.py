@@ -118,7 +118,7 @@ class TestConvertToDatetime(object):
         returned = convert_to_datetime(input, timezone, None)
         if expected is not None:
             assert isinstance(returned, datetime)
-            expected = timezone.localize(expected) if not expected.tzinfo else expected
+            expected = expected if expected.tzinfo else timezone.localize(expected)
 
         assert returned == expected
 

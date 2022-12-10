@@ -20,11 +20,11 @@ class BaseCombiningTrigger(BaseTrigger):
     def __setstate__(self, state):
         if state.get('version', 1) > 1:
             raise ValueError(
-                'Got serialized data for version %s of %s, but only versions up to 1 can be '
-                'handled' % (state['version'], self.__class__.__name__))
+                f"Got serialized data for version {state['version']} of {self.__class__.__name__}, but only versions up to 1 can be handled"
+            )
 
-        self.jitter = state['jitter']
         self.triggers = []
+        self.jitter = state['jitter']
         for clsref, state in state['triggers']:
             cls = ref_to_obj(clsref)
             trigger = cls.__new__(cls)
@@ -32,8 +32,7 @@ class BaseCombiningTrigger(BaseTrigger):
             self.triggers.append(trigger)
 
     def __repr__(self):
-        return '<{}({}{})>'.format(self.__class__.__name__, self.triggers,
-                                   ', jitter={}'.format(self.jitter) if self.jitter else '')
+        return f"<{self.__class__.__name__}({self.triggers}{f', jitter={self.jitter}' if self.jitter else ''})>"
 
 
 class AndTrigger(BaseCombiningTrigger):
@@ -62,7 +61,7 @@ class AndTrigger(BaseCombiningTrigger):
                 now = max(fire_times)
 
     def __str__(self):
-        return 'and[{}]'.format(', '.join(str(trigger) for trigger in self.triggers))
+        return f"and[{', '.join(str(trigger) for trigger in self.triggers)}]"
 
 
 class OrTrigger(BaseCombiningTrigger):
@@ -85,11 +84,12 @@ class OrTrigger(BaseCombiningTrigger):
     def get_next_fire_time(self, previous_fire_time, now):
         fire_times = [trigger.get_next_fire_time(previous_fire_time, now)
                       for trigger in self.triggers]
-        fire_times = [fire_time for fire_time in fire_times if fire_time is not None]
-        if fire_times:
+        if fire_times := [
+            fire_time for fire_time in fire_times if fire_time is not None
+        ]:
             return self._apply_jitter(min(fire_times), self.jitter, now)
         else:
             return None
 
     def __str__(self):
-        return 'or[{}]'.format(', '.join(str(trigger) for trigger in self.triggers))
+        return f"or[{', '.join(str(trigger) for trigger in self.triggers)}]"

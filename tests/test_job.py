@@ -230,8 +230,8 @@ def test_eq(create_job):
     job2 = create_job(func=lambda: None, id='foo')
     job3 = create_job(func=lambda: None, id='bar')
     assert job == job2
-    assert not job == job3
-    assert not job == 'foo'
+    assert job != job3
+    assert job != 'foo'
 
 
 def test_repr(job):
@@ -245,10 +245,10 @@ def test_repr(job):
 ], ids=['scheduled', 'paused', 'pending'])
 def test_str(create_job, status, expected_status):
     job = create_job(func=dummyfunc)
-    if status == 'scheduled':
-        job.next_run_time = job.trigger.run_date
-    elif status == 'pending':
+    if status == 'pending':
         del job.next_run_time
 
-    expected = 'nämé (trigger: date[2011-04-03 18:40:00 CEST], {})'.format(expected_status)
+    elif status == 'scheduled':
+        job.next_run_time = job.trigger.run_date
+    expected = f'nämé (trigger: date[2011-04-03 18:40:00 CEST], {expected_status})'
     assert str(job) == expected

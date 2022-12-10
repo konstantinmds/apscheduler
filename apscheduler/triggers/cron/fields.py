@@ -57,8 +57,7 @@ class BaseField:
 
     def compile_expression(self, expr):
         for compiler in self.COMPILERS:
-            match = compiler.value_re.match(expr)
-            if match:
+            if match := compiler.value_re.match(expr):
                 compiled_expr = compiler(**match.groupdict())
 
                 try:
@@ -70,7 +69,7 @@ class BaseField:
                 self.expressions.append(compiled_expr)
                 return
 
-        raise ValueError('Unrecognized expression "%s" for field "%s"' % (expr, self.name))
+        raise ValueError(f'Unrecognized expression "{expr}" for field "{self.name}"')
 
     def __eq__(self, other):
         return isinstance(self, self.__class__) and self.expressions == other.expressions
@@ -80,7 +79,7 @@ class BaseField:
         return ','.join(expr_strings)
 
     def __repr__(self):
-        return "%s('%s', '%s')" % (self.__class__.__name__, self.name, self)
+        return f"{self.__class__.__name__}('{self.name}', '{self}')"
 
 
 class WeekField(BaseField):

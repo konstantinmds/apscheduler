@@ -207,8 +207,9 @@ class Job:
         if 'trigger' in changes:
             trigger = changes.pop('trigger')
             if not isinstance(trigger, BaseTrigger):
-                raise TypeError('Expected a trigger instance, got %s instead' %
-                                trigger.__class__.__name__)
+                raise TypeError(
+                    f'Expected a trigger instance, got {trigger.__class__.__name__} instead'
+                )
 
             approved['trigger'] = trigger
 
@@ -224,8 +225,9 @@ class Job:
                                                             'next_run_time')
 
         if changes:
-            raise AttributeError('The following are not modifiable attributes of Job: %s' %
-                                 ', '.join(changes))
+            raise AttributeError(
+                f"The following are not modifiable attributes of Job: {', '.join(changes)}"
+            )
 
         for key, value in approved.items():
             setattr(self, key, value)
@@ -262,8 +264,9 @@ class Job:
 
     def __setstate__(self, state):
         if state.get('version', 1) > 1:
-            raise ValueError('Job has version %s, but only version 1 can be handled' %
-                             state['version'])
+            raise ValueError(
+                f"Job has version {state['version']}, but only version 1 can be handled"
+            )
 
         self.id = state['id']
         self.func_ref = state['func']
@@ -279,18 +282,19 @@ class Job:
         self.next_run_time = state['next_run_time']
 
     def __eq__(self, other):
-        if isinstance(other, Job):
-            return self.id == other.id
-        return NotImplemented
+        return self.id == other.id if isinstance(other, Job) else NotImplemented
 
     def __repr__(self):
         return '<Job (id={self.id!r} name={self.name!r})>'.format(self=self)
 
     def __str__(self):
         if hasattr(self, 'next_run_time'):
-            status = ('next run at: ' + datetime_repr(self.next_run_time) if
-                      self.next_run_time else 'paused')
+            status = (
+                f'next run at: {datetime_repr(self.next_run_time)}'
+                if self.next_run_time
+                else 'paused'
+            )
         else:
             status = 'pending'
 
-        return u'%s (trigger: %s, %s)' % (self.name, self.trigger, status)
+        return f'{self.name} (trigger: {self.trigger}, {status})'

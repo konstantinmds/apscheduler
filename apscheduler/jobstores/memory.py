@@ -92,13 +92,13 @@ class MemoryJobStore(BaseJobStore):
             mid = (lo + hi) // 2
             mid_job, mid_timestamp = self._jobs[mid]
             mid_timestamp = float('inf') if mid_timestamp is None else mid_timestamp
-            if mid_timestamp > timestamp:
+            if (
+                mid_timestamp > timestamp
+                or mid_timestamp >= timestamp
+                and mid_job.id > job_id
+            ):
                 hi = mid
-            elif mid_timestamp < timestamp:
-                lo = mid + 1
-            elif mid_job.id > job_id:
-                hi = mid
-            elif mid_job.id < job_id:
+            elif mid_timestamp < timestamp or mid_job.id < job_id:
                 lo = mid + 1
             else:
                 return mid

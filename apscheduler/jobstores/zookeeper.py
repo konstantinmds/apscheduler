@@ -41,10 +41,7 @@ class ZooKeeperJobStore(BaseJobStore):
 
         self.path = path
 
-        if client:
-            self.client = maybe_ref(client)
-        else:
-            self.client = KazooClient(**connect_args)
+        self.client = maybe_ref(client) if client else KazooClient(**connect_args)
         self._ensured_path = False
 
     def _ensure_paths(self):
@@ -63,21 +60,23 @@ class ZooKeeperJobStore(BaseJobStore):
         try:
             content, _ = self.client.get(node_path)
             doc = pickle.loads(content)
-            job = self._reconstitute_job(doc['job_state'])
-            return job
+            return self._reconstitute_job(doc['job_state'])
         except BaseException:
             return None
 
     def get_due_jobs(self, now):
         timestamp = datetime_to_utc_timestamp(now)
-        jobs = [job_def['job'] for job_def in self._get_jobs()
-                if job_def['next_run_time'] is not None and job_def['next_run_time'] <= timestamp]
-        return jobs
+        return [
+            job_def['job']
+            for job_def in self._get_jobs()
+            if job_def['next_run_time'] is not None
+            and job_def['next_run_time'] <= timestamp
+        ]
 
     def get_next_run_time(self):
         next_runs = [job_def['next_run_time'] for job_def in self._get_jobs()
                      if job_def['next_run_time'] is not None]
-        return utc_timestamp_to_datetime(min(next_runs)) if len(next_runs) > 0 else None
+        return utc_timestamp_to_datetime(min(next_runs)) if next_runs else None
 
     def get_all_jobs(self):
         jobs = [job_def['job'] for job_def in self._get_jobs()]
@@ -150,14 +149,14 @@ class ZooKeeperJobStore(BaseJobStore):
                 doc = pickle.loads(content)
                 job_def = {
                     'job_id': node_name,
-                    'next_run_time': doc['next_run_time'] if doc['next_run_time'] else None,
+                    'next_run_time': doc['next_run_time'] or None,
                     'job_state': doc['job_state'],
                     'job': self._reconstitute_job(doc['job_state']),
-                    'creation_time': _.ctime
+                    'creation_time': _.ctime,
                 }
                 jobs.append(job_def)
             except BaseException:
-                self._logger.exception('Unable to restore job "%s" -- removing it' % node_name)
+                self._logger.exception(f'Unable to restore job "{node_name}" -- removing it')
                 failed_job_ids.append(node_name)
 
         # Remove all the jobs we failed to restore
@@ -169,5 +168,5 @@ class ZooKeeperJobStore(BaseJobStore):
                                                  job_def['creation_time']))
 
     def __repr__(self):
-        self._logger.exception('<%s (client=%s)>' % (self.__class__.__name__, self.client))
-        return '<%s (client=%s)>' % (self.__class__.__name__, self.client)
+        self._logger.exception(f'<{self.__class__.__name__} (client={self.client})>')
+        return f'<{self.__class__.__name__} (client={self.client})>'

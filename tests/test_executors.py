@@ -131,6 +131,7 @@ def test_run_job_error(monkeypatch, executor):
 
 
 def test_run_job_memory_leak():
+
     class FooBar(object):
         pass
 
@@ -144,7 +145,7 @@ def test_run_job_memory_leak():
             run_job(fake_job, 'foo', [datetime.now(UTC)], __name__)
 
     foos = [x for x in gc.get_objects() if type(x) is FooBar]
-    assert len(foos) == 0
+    assert not foos
 
 
 @pytest.fixture

@@ -51,7 +51,7 @@ def asbool(obj):
             return True
         if obj in ('false', 'no', 'off', 'n', 'f', '0'):
             return False
-        raise ValueError('Unable to interpret value "%s" as boolean' % obj)
+        raise ValueError(f'Unable to interpret value "{obj}" as boolean')
     return bool(obj)
 
 
@@ -75,7 +75,7 @@ def astimezone(obj):
                 'timezone name (such as Europe/Helsinki).')
         return obj
     if obj is not None:
-        raise TypeError('Expected tzinfo, got %s instead' % obj.__class__.__name__)
+        raise TypeError(f'Expected tzinfo, got {obj.__class__.__name__} instead')
 
 
 _DATE_REGEX = re.compile(
@@ -127,13 +127,14 @@ def convert_to_datetime(input, tz, arg_name):
         values = {k: int(v or 0) for k, v in values.items()}
         datetime_ = datetime(**values)
     else:
-        raise TypeError('Unsupported type for %s: %s' % (arg_name, input.__class__.__name__))
+        raise TypeError(f'Unsupported type for {arg_name}: {input.__class__.__name__}')
 
     if datetime_.tzinfo is not None:
         return datetime_
     if tz is None:
         raise ValueError(
-            'The "tz" argument must be specified if %s has no timezone information' % arg_name)
+            f'The "tz" argument must be specified if {arg_name} has no timezone information'
+        )
     if isinstance(tz, str):
         tz = timezone(tz)
 
@@ -215,17 +216,12 @@ def get_callable_name(func):
         f_class = getattr(func, 'im_class', None)
 
     if f_class and hasattr(func, '__name__'):
-        return '%s.%s' % (f_class.__name__, func.__name__)
+        return f'{f_class.__name__}.{func.__name__}'
 
     # class or class instance
     if hasattr(func, '__call__'):
         # class
-        if hasattr(func, '__name__'):
-            return func.__name__
-
-        # instance of a class with a __call__ method
-        return func.__class__.__name__
-
+        return func.__name__ if hasattr(func, '__name__') else func.__class__.__name__
     raise TypeError('Unable to determine a name for %r -- maybe it is not a callable?' % func)
 
 
@@ -259,7 +255,7 @@ def obj_to_ref(obj):
             module = obj.__module__
     else:
         module = obj.__module__
-    return '%s:%s' % (module, name)
+    return f'{module}:{name}'
 
 
 def ref_to_obj(ref):
@@ -278,14 +274,14 @@ def ref_to_obj(ref):
     try:
         obj = __import__(modulename, fromlist=[rest])
     except ImportError:
-        raise LookupError('Error resolving reference %s: could not import module' % ref)
+        raise LookupError(f'Error resolving reference {ref}: could not import module')
 
     try:
         for name in rest.split('.'):
             obj = getattr(obj, name)
         return obj
     except Exception:
-        raise LookupError('Error resolving reference %s: error looking up object' % ref)
+        raise LookupError(f'Error resolving reference {ref}: error looking up object')
 
 
 def maybe_ref(ref):
@@ -294,9 +290,7 @@ def maybe_ref(ref):
     If it is not a reference, the object is returned as-is.
 
     """
-    if not isinstance(ref, str):
-        return ref
-    return ref_to_obj(ref)
+    return ref_to_obj(ref) if isinstance(ref, str) else ref
 
 
 def check_callable_args(func, args, kwargs):
@@ -353,25 +347,28 @@ def check_callable_args(func, args, kwargs):
 
     # Make sure there are no conflicts between args and kwargs
     if pos_kwargs_conflicts:
-        raise ValueError('The following arguments are supplied in both args and kwargs: %s' %
-                         ', '.join(pos_kwargs_conflicts))
+        raise ValueError(
+            f"The following arguments are supplied in both args and kwargs: {', '.join(pos_kwargs_conflicts)}"
+        )
 
     # Check if keyword arguments are being fed to positional-only parameters
     if positional_only_kwargs:
-        raise ValueError('The following arguments cannot be given as keyword arguments: %s' %
-                         ', '.join(positional_only_kwargs))
+        raise ValueError(
+            f"The following arguments cannot be given as keyword arguments: {', '.join(positional_only_kwargs)}"
+        )
 
     # Check that the number of positional arguments minus the number of matched kwargs matches the
     # argspec
     if unsatisfied_args:
-        raise ValueError('The following arguments have not been supplied: %s' %
-                         ', '.join(unsatisfied_args))
+        raise ValueError(
+            f"The following arguments have not been supplied: {', '.join(unsatisfied_args)}"
+        )
 
     # Check that all keyword-only arguments have been supplied
     if unsatisfied_kwargs:
         raise ValueError(
-            'The following keyword-only arguments have not been supplied in kwargs: %s' %
-            ', '.join(unsatisfied_kwargs))
+            f"The following keyword-only arguments have not been supplied in kwargs: {', '.join(unsatisfied_kwargs)}"
+        )
 
     # Check that the callable can accept the given number of positional arguments
     if not has_varargs and unmatched_args:
@@ -382,5 +379,5 @@ def check_callable_args(func, args, kwargs):
     # Check that the callable can accept the given keyword arguments
     if not has_var_kwargs and unmatched_kwargs:
         raise ValueError(
-            'The target callable does not accept the following keyword arguments: %s' %
-            ', '.join(unmatched_kwargs))
+            f"The target callable does not accept the following keyword arguments: {', '.join(unmatched_kwargs)}"
+        )

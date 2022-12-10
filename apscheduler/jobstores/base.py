@@ -6,15 +6,14 @@ class JobLookupError(KeyError):
     """Raised when the job store cannot find a job for update or removal."""
 
     def __init__(self, job_id):
-        super().__init__(u'No job by the id of %s was found' % job_id)
+        super().__init__(f'No job by the id of {job_id} was found')
 
 
 class ConflictingIdError(KeyError):
     """Raised when the uniqueness of job IDs is being violated."""
 
     def __init__(self, job_id):
-        super().__init__(
-            u'Job identifier (%s) conflicts with an existing job' % job_id)
+        super().__init__(f'Job identifier ({job_id}) conflicts with an existing job')
 
 
 class TransientJobError(ValueError):
@@ -48,7 +47,7 @@ class BaseJobStore(metaclass=ABCMeta):
 
         self._scheduler = scheduler
         self._alias = alias
-        self._logger = logging.getLogger('apscheduler.jobstores.%s' % alias)
+        self._logger = logging.getLogger(f'apscheduler.jobstores.{alias}')
 
     def shutdown(self):
         """Frees any resources still bound to this job store."""
@@ -138,4 +137,4 @@ class BaseJobStore(metaclass=ABCMeta):
         """Removes all jobs from this store."""
 
     def __repr__(self):
-        return '<%s>' % self.__class__.__name__
+        return f'<{self.__class__.__name__}>'

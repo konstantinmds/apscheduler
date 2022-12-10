@@ -13,7 +13,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 
 def alarm(time):
-    print('Alarm! This alarm was scheduled at %s.' % time)
+    print(f'Alarm! This alarm was scheduled at {time}.')
 
 
 if __name__ == '__main__':

@@ -61,8 +61,11 @@ class CronTrigger(BaseTrigger):
 
         self.jitter = jitter
 
-        values = dict((key, value) for (key, value) in locals().items()
-                      if key in self.FIELD_NAMES and value is not None)
+        values = {
+            key: value
+            for (key, value) in locals().items()
+            if key in self.FIELD_NAMES and value is not None
+        }
         self.fields = []
         assign_defaults = False
         for field_name in self.FIELD_NAMES:
@@ -96,7 +99,7 @@ class CronTrigger(BaseTrigger):
         """
         values = expr.split()
         if len(values) != 5:
-            raise ValueError('Wrong number of fields; got {}, expected 5'.format(len(values)))
+            raise ValueError(f'Wrong number of fields; got {len(values)}, expected 5')
 
         return cls(minute=values[0], hour=values[1], day=values[2], month=values[3],
                    day_of_week=values[4], timezone=timezone)
@@ -221,17 +224,16 @@ class CronTrigger(BaseTrigger):
         self.jitter = state.get('jitter')
 
     def __str__(self):
-        options = ["%s='%s'" % (f.name, f) for f in self.fields if not f.is_default]
-        return 'cron[%s]' % (', '.join(options))
+        options = [f"{f.name}='{f}'" for f in self.fields if not f.is_default]
+        return f"cron[{', '.join(options)}]"
 
     def __repr__(self):
-        options = ["%s='%s'" % (f.name, f) for f in self.fields if not f.is_default]
+        options = [f"{f.name}='{f}'" for f in self.fields if not f.is_default]
         if self.start_date:
             options.append("start_date=%r" % datetime_repr(self.start_date))
         if self.end_date:
             options.append("end_date=%r" % datetime_repr(self.end_date))
         if self.jitter:
-            options.append('jitter=%s' % self.jitter)
+            options.append(f'jitter={self.jitter}')
 
-        return "<%s (%s, timezone='%s')>" % (
-            self.__class__.__name__, ', '.join(options), self.timezone)
+        return f"<{self.__class__.__name__} ({', '.join(options)}, timezone='{self.timezone}')>"

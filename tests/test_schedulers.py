@@ -102,67 +102,48 @@ class TestBaseScheduler(object):
         return events
 
     def test_constructor(self):
-        with patch('%s.DummyScheduler.configure' % __name__) as configure:
+        with patch(f'{__name__}.DummyScheduler.configure') as configure:
             gconfig = {'apscheduler.foo': 'bar', 'apscheduler.x': 'y'}
             options = {'bar': 'baz', 'xyz': 123}
             DummyScheduler(gconfig, **options)
 
         configure.assert_called_once_with(gconfig, **options)
 
-    @pytest.mark.parametrize('gconfig', [
-        {
-            'apscheduler.timezone': 'UTC',
-            'apscheduler.job_defaults.misfire_grace_time': '5',
-            'apscheduler.job_defaults.coalesce': 'false',
-            'apscheduler.job_defaults.max_instances': '9',
-            'apscheduler.executors.default.class': '%s:DummyExecutor' % __name__,
-            'apscheduler.executors.default.arg1': '3',
-            'apscheduler.executors.default.arg2': 'a',
-            'apscheduler.executors.alter.class': '%s:DummyExecutor' % __name__,
-            'apscheduler.executors.alter.arg': 'true',
-            'apscheduler.jobstores.default.class': '%s:DummyJobStore' % __name__,
-            'apscheduler.jobstores.default.arg1': '3',
-            'apscheduler.jobstores.default.arg2': 'a',
-            'apscheduler.jobstores.bar.class': '%s:DummyJobStore' % __name__,
-            'apscheduler.jobstores.bar.arg': 'false',
-        },
-        {
-            'apscheduler.timezone': 'UTC',
-            'apscheduler.job_defaults': {
+    @pytest.mark.parametrize('gconfig', [{'apscheduler.timezone': 'UTC', 'apscheduler.job_defaults.misfire_grace_time': '5', 'apscheduler.job_defaults.coalesce': 'false', 'apscheduler.job_defaults.max_instances': '9', 'apscheduler.executors.default.class': f'{__name__}:DummyExecutor', 'apscheduler.executors.default.arg1': '3', 'apscheduler.executors.default.arg2': 'a', 'apscheduler.executors.alter.class': f'{__name__}:DummyExecutor', 'apscheduler.executors.alter.arg': 'true', 'apscheduler.jobstores.default.class': f'{__name__}:DummyJobStore', 'apscheduler.jobstores.default.arg1': '3', 'apscheduler.jobstores.default.arg2': 'a', 'apscheduler.jobstores.bar.class': f'{__name__}:DummyJobStore', 'apscheduler.jobstores.bar.arg': 'false'}, {'apscheduler.timezone': 'UTC', 'apscheduler.job_defaults': {
                 'misfire_grace_time': '5',
                 'coalesce': 'false',
                 'max_instances': '9',
-            },
-            'apscheduler.executors': {
-                'default': {'class': '%s:DummyExecutor' % __name__, 'arg1': '3', 'arg2': 'a'},
-                'alter': {'class': '%s:DummyExecutor' % __name__, 'arg': 'true'}
-            },
-            'apscheduler.jobstores': {
-                'default': {'class': '%s:DummyJobStore' % __name__, 'arg1': '3', 'arg2': 'a'},
-                'bar': {'class': '%s:DummyJobStore' % __name__, 'arg': 'false'}
-            }
-        }
-    ], ids=['ini-style', 'yaml-style'])
+            }, 'apscheduler.executors': {'default': {'class': f'{__name__}:DummyExecutor', 'arg1': '3', 'arg2': 'a'}, 'alter': {'class': f'{__name__}:DummyExecutor', 'arg': 'true'}}, 'apscheduler.jobstores': {'default': {'class': f'{__name__}:DummyJobStore', 'arg1': '3', 'arg2': 'a'}, 'bar': {'class': f'{__name__}:DummyJobStore', 'arg': 'false'}}}], ids=['ini-style', 'yaml-style'])
     def test_configure(self, scheduler, gconfig):
         scheduler._configure = MagicMock()
         scheduler.configure(gconfig, timezone='Other timezone')
 
-        scheduler._configure.assert_called_once_with({
-            'timezone': 'Other timezone',
-            'job_defaults': {
-                'misfire_grace_time': '5',
-                'coalesce': 'false',
-                'max_instances': '9',
-            },
-            'executors': {
-                'default': {'class': '%s:DummyExecutor' % __name__, 'arg1': '3', 'arg2': 'a'},
-                'alter': {'class': '%s:DummyExecutor' % __name__, 'arg': 'true'}
-            },
-            'jobstores': {
-                'default': {'class': '%s:DummyJobStore' % __name__, 'arg1': '3', 'arg2': 'a'},
-                'bar': {'class': '%s:DummyJobStore' % __name__, 'arg': 'false'}
+        scheduler._configure.assert_called_once_with(
+            {
+                'timezone': 'Other timezone',
+                'job_defaults': {
+                    'misfire_grace_time': '5',
+                    'coalesce': 'false',
+                    'max_instances': '9',
+                },
+                'executors': {
+                    'default': {
+                        'class': f'{__name__}:DummyExecutor',
+                        'arg1': '3',
+                        'arg2': 'a',
+                    },
+                    'alter': {'class': f'{__name__}:DummyExecutor', 'arg': 'true'},
+                },
+                'jobstores': {
+                    'default': {
+                        'class': f'{__name__}:DummyJobStore',
+                        'arg1': '3',
+                        'arg2': 'a',
+                    },
+                    'bar': {'class': f'{__name__}:DummyJobStore', 'arg': 'false'},
+                },
             }
-        })
+        )
 
     @pytest.mark.parametrize('method', [
         BaseScheduler.configure,
@@ -210,7 +191,7 @@ class TestBaseScheduler(object):
         assert 'default' in scheduler._jobstores
 
         scheduler._real_add_job.assert_called_once_with(job, 'store1', False)
-        assert scheduler._pending_jobs == []
+        assert not scheduler._pending_jobs
 
         assert scheduler._dispatch_event.call_count == 3
         event = scheduler._dispatch_event.call_args_list[0][0][0]
@@ -572,12 +553,12 @@ class TestBaseScheduler(object):
 Pending jobs:
     test job 2 (trigger: date[2099-08-08 00:00:00 CET], pending)
 """
-        elif jobstore and start_scheduler:
+        elif jobstore:
             assert outfile.getvalue() == """\
 Jobstore other:
     test job 2 (trigger: date[2099-08-08 00:00:00 CET], next run at: 2099-08-08 00:00:00 CET)
 """
-        elif not jobstore and not start_scheduler:
+        elif not start_scheduler:
             assert outfile.getvalue() == """\
 Pending jobs:
     test job 1 (trigger: date[2099-09-09 00:00:00 CET], pending)
@@ -591,24 +572,11 @@ Jobstore other:
     test job 2 (trigger: date[2099-08-08 00:00:00 CET], next run at: 2099-08-08 00:00:00 CET)
 """
 
-    @pytest.mark.parametrize('config', [
-        {
-            'timezone': 'UTC',
-            'job_defaults': {
+    @pytest.mark.parametrize('config', [{'timezone': 'UTC', 'job_defaults': {
                 'misfire_grace_time': '5',
                 'coalesce': 'false',
                 'max_instances': '9',
-            },
-            'executors': {
-                'default': {'class': '%s:DummyExecutor' % __name__, 'arg1': '3', 'arg2': 'a'},
-                'alter': {'class': '%s:DummyExecutor' % __name__, 'arg': 'true'}
-            },
-            'jobstores': {
-                'default': {'class': '%s:DummyJobStore' % __name__, 'arg1': '3', 'arg2': 'a'},
-                'bar': {'class': '%s:DummyJobStore' % __name__, 'arg': 'false'}
-            }
-        },
-        {
+            }, 'executors': {'default': {'class': f'{__name__}:DummyExecutor', 'arg1': '3', 'arg2': 'a'}, 'alter': {'class': f'{__name__}:DummyExecutor', 'arg': 'true'}}, 'jobstores': {'default': {'class': f'{__name__}:DummyJobStore', 'arg1': '3', 'arg2': 'a'}, 'bar': {'class': f'{__name__}:DummyJobStore', 'arg': 'false'}}}, {
             'timezone': utc,
             'job_defaults': {
                 'misfire_grace_time': 5,
@@ -623,8 +591,7 @@ Jobstore other:
                 'default': DummyJobStore(arg1='3', arg2='a'),
                 'bar': DummyJobStore(arg='false')
             }
-        }
-    ], ids=['references', 'instances'])
+        }], ids=['references', 'instances'])
     def test_configure_private(self, scheduler, config):
         scheduler._configure(config)
 

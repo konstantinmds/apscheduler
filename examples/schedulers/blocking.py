@@ -10,7 +10,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 
 def tick():
-    print('Tick! The time is: %s' % datetime.now())
+    print(f'Tick! The time is: {datetime.now()}')
 
 
 if __name__ == '__main__':

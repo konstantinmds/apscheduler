@@ -91,7 +91,7 @@ class CalendarIntervalTrigger(BaseTrigger):
                         next_date += timedelta(self.days + self.weeks * 7)
                         break
             else:
-                next_date = self.start_date if self.start_date else now.date()
+                next_date = self.start_date or now.date()
 
             # Don't return any date past end_date
             if self.end_date and next_date > self.end_date:
@@ -120,8 +120,8 @@ class CalendarIntervalTrigger(BaseTrigger):
     def __setstate__(self, state):
         if state.get('version', 1) > 1:
             raise ValueError(
-                'Got serialized data for version %s of %s, but only version 1 can be handled' %
-                (state['version'], self.__class__.__name__))
+                f"Got serialized data for version {state['version']} of {self.__class__.__name__}, but only version 1 can be handled"
+            )
 
         self.years, self.months, self.weeks, self.days = state['interval']
         self.time = state['time']
@@ -132,11 +132,10 @@ class CalendarIntervalTrigger(BaseTrigger):
     def __str__(self):
         options = []
         for field, suffix in [('years', 'y'), ('months', 'm'), ('weeks', 'w'), ('days', 'd')]:
-            value = getattr(self, field)
-            if value:
-                options.append('{}{}'.format(value, suffix))
+            if value := getattr(self, field):
+                options.append(f'{value}{suffix}')
 
-        return 'calendarinterval[{} at {}]'.format(', '.join(options), self.time)
+        return f"calendarinterval[{', '.join(options)} at {self.time}]"
 
     def __repr__(self):
         fields = 'years', 'months', 'weeks', 'days'

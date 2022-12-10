@@ -49,15 +49,15 @@ class RedisJobStore(BaseJobStore):
 
     def get_due_jobs(self, now):
         timestamp = datetime_to_utc_timestamp(now)
-        job_ids = self.redis.zrangebyscore(self.run_times_key, 0, timestamp)
-        if job_ids:
+        if job_ids := self.redis.zrangebyscore(self.run_times_key, 0, timestamp):
             job_states = self.redis.hmget(self.jobs_key, *job_ids)
             return self._reconstitute_jobs(zip(job_ids, job_states))
         return []
 
     def get_next_run_time(self):
-        next_run_time = self.redis.zrange(self.run_times_key, 0, 0, withscores=True)
-        if next_run_time:
+        if next_run_time := self.redis.zrange(
+            self.run_times_key, 0, 0, withscores=True
+        ):
             return utc_timestamp_to_datetime(next_run_time[0][1])
 
     def get_all_jobs(self):
@@ -141,4 +141,4 @@ class RedisJobStore(BaseJobStore):
         return jobs
 
     def __repr__(self):
-        return '<%s>' % self.__class__.__name__
+        return f'<{self.__class__.__name__}>'
